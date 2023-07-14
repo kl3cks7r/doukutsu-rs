@@ -51,6 +51,12 @@
       "title": "Select Player 2's appearance",
       "label": "Appearance:"
     },
+    "archipelago_menu": {
+      "title": "Input Archipelago Info",
+      "ip": "IP Address",
+      "slot": "Slot Name",
+      "password": "Password"
+    },
     "challenge_menu": {
       "start": "Start",
       "no_replay": "No Replay",

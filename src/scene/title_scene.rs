@@ -4,6 +4,7 @@ use crate::components::compact_jukebox::CompactJukebox;
 use crate::components::nikumaru::NikumaruCounter;
 use crate::entity::GameEntity;
 use crate::framework::context::Context;
+use crate::framework::ui::Components;
 use crate::framework::error::GameResult;
 use crate::game::frame::Frame;
 use crate::game::map::Map;
@@ -15,7 +16,7 @@ use crate::graphics::font::Font;
 use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::input::touch_controls::TouchControlType;
 use crate::menu::coop_menu::PlayerCountMenu;
-use crate::menu::save_select_menu::SaveSelectMenu;
+use crate::menu::save_select_menu::{SaveSelectMenu, InputState};
 use crate::menu::settings_menu::SettingsMenu;
 use crate::menu::{Menu, MenuEntry, MenuSelectionResult};
 use crate::scene::jukebox_scene::JukeboxScene;
@@ -541,6 +542,25 @@ impl Scene for TitleScene {
             CurrentMenu::SaveSelectMenu => self.save_select_menu.draw(state, ctx)?,
             CurrentMenu::PlayerCountMenu => self.coop_menu.draw(state, ctx)?,
         }
+
+        Ok(())
+    }
+
+    fn imgui_draw(
+        &mut self,
+        _game_ui: &mut Components,
+        state: &mut SharedGameState,
+        _ctx: &mut Context,
+        ui: &mut imgui::Ui,
+    ) -> GameResult {
+        match self.save_select_menu.input_state {
+            InputState::Idling => (),
+            InputState::RequestInput => {
+                SaveSelectMenu::retrive_input(&mut self.save_select_menu, state, ui);
+            },
+            InputState::ReceivedInput => (),
+        }
+        
 
         Ok(())
     }

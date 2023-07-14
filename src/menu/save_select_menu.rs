@@ -8,6 +8,9 @@ use crate::menu::coop_menu::PlayerCountMenu;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
 
+use imgui::{Condition, Window};
+use crate::archipelago;
+
 #[derive(Clone, Copy)]
 pub struct MenuSaveInfo {
     pub current_map: u32,
@@ -33,6 +36,8 @@ pub enum CurrentMenu {
     PlayerCountMenu,
     DeleteConfirm,
     LoadConfirm,
+    ArchipelagoMenu,
+    InputMenu,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -87,6 +92,34 @@ impl Default for LoadConfirmMenuEntry {
     }
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ArchipelagoMenuEntry {
+    Title,
+    Server,
+    SlotName,
+    Password,
+    Start,
+    Back,
+}
+
+impl Default for ArchipelagoMenuEntry {
+    fn default() -> Self {
+        ArchipelagoMenuEntry::Server
+    }
+}
+
+pub enum InputState {
+    Idling,
+    RequestInput,
+    ReceivedInput,
+}
+
+impl Default for InputState {
+    fn default() -> Self {
+        InputState::Idling
+    }
+}
+
 pub struct SaveSelectMenu {
     pub saves: [MenuSaveInfo; 3],
     current_menu: CurrentMenu,
@@ -97,6 +130,9 @@ pub struct SaveSelectMenu {
     delete_confirm: Menu<DeleteConfirmMenuEntry>,
     load_confirm: Menu<LoadConfirmMenuEntry>,
     skip_difficulty_menu: bool,
+    archipelago_menu: Menu<ArchipelagoMenuEntry>,
+    input_buffer: String,
+    pub input_state: InputState,
 }
 
 impl SaveSelectMenu {
@@ -111,6 +147,10 @@ impl SaveSelectMenu {
             delete_confirm: Menu::new(0, 0, 75, 0),
             load_confirm: Menu::new(0, 0, 75, 0),
             skip_difficulty_menu: false,
+            archipelago_menu: Menu::new(0, 0, 130, 0),
+            input_buffer: String::new(),
+            input_state: InputState::Idling,
+
         }
     }
 
@@ -123,6 +163,7 @@ impl SaveSelectMenu {
         self.delete_confirm = Menu::new(0, 0, 75, 0);
         self.load_confirm = Menu::new(0, 0, 75, 0);
         self.skip_difficulty_menu = false;
+        self.archipelago_menu = Menu::new(0, 0, 130, 0);
 
         let mut should_mutate_selection = true;
 
@@ -206,6 +247,16 @@ impl SaveSelectMenu {
             self.save_detailed.push_entry(0, MenuEntry::SaveDataSingle(save));
         }
 
+        self.archipelago_menu
+            .push_entry(ArchipelagoMenuEntry::Title, MenuEntry::Disabled(state.loc.t("menus.archipelago_menu.title").to_owned()));
+        self.archipelago_menu.push_entry(ArchipelagoMenuEntry::Server, MenuEntry::Active(state.loc.t("menus.archipelago_menu.ip").to_owned()));
+        self.archipelago_menu.push_entry(ArchipelagoMenuEntry::SlotName, MenuEntry::Active(state.loc.t("menus.archipelago_menu.slot").to_owned()));
+        self.archipelago_menu.push_entry(ArchipelagoMenuEntry::Password, MenuEntry::Active(state.loc.t("menus.archipelago_menu.password").to_owned()));
+        self.archipelago_menu.push_entry(ArchipelagoMenuEntry::Start, MenuEntry::Active(state.loc.t("menus.main_menu.start").to_owned()));
+        self.archipelago_menu.push_entry(ArchipelagoMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
+
+        self.archipelago_menu.selected = ArchipelagoMenuEntry::Server;
+
         self.update_sizes(state);
 
         Ok(())
@@ -241,6 +292,11 @@ impl SaveSelectMenu {
         self.save_detailed.update_height(state);
         self.save_detailed.x = ((state.canvas_size.0 - self.save_detailed.width as f32) / 2.0).floor() as isize;
         self.save_detailed.y = -40 + ((state.canvas_size.1 - self.save_detailed.height as f32) / 2.0).floor() as isize;
+
+        self.archipelago_menu.update_width(state);
+        self.archipelago_menu.update_height(state);
+        self.archipelago_menu.x = ((state.canvas_size.0 - self.archipelago_menu.width as f32) / 2.0).floor() as isize;
+        self.archipelago_menu.y = 30 + ((state.canvas_size.1 - self.archipelago_menu.height as f32) / 2.0).floor() as isize;
     }
 
     pub fn tick(
@@ -258,7 +314,8 @@ impl SaveSelectMenu {
                     state.save_slot = slot + 1;
 
                     if self.skip_difficulty_menu {
-                        self.confirm_save_slot(state, ctx)?;
+                        self.current_menu = CurrentMenu::ArchipelagoMenu;
+                        self.archipelago_menu.selected = ArchipelagoMenuEntry::Server;
                     } else {
                         self.difficulty_menu.selected = DifficultyMenuEntry::Difficulty(GameDifficulty::Normal);
                         self.current_menu = CurrentMenu::DifficultyMenu;
@@ -287,13 +344,14 @@ impl SaveSelectMenu {
                 }
                 MenuSelectionResult::Selected(DifficultyMenuEntry::Difficulty(difficulty), _) => {
                     state.difficulty = difficulty;
-                    self.confirm_save_slot(state, ctx)?;
+                    self.current_menu = CurrentMenu::ArchipelagoMenu;
+                    self.archipelago_menu.selected = ArchipelagoMenuEntry::Server;
                 }
                 _ => (),
             },
             CurrentMenu::PlayerCountMenu => {
                 let cm = &mut self.current_menu;
-                let rm = CurrentMenu::SaveMenu;
+                let rm = CurrentMenu::ArchipelagoMenu;
                 self.coop_menu.tick(
                     &mut || {
                         *cm = rm;
@@ -329,7 +387,8 @@ impl SaveSelectMenu {
             },
             CurrentMenu::LoadConfirm => match self.load_confirm.tick(controller, state) {
                 MenuSelectionResult::Selected(LoadConfirmMenuEntry::Start, _) => {
-                    self.confirm_save_slot(state, ctx)?;
+                    self.current_menu = CurrentMenu::ArchipelagoMenu;
+                    self.archipelago_menu.selected = ArchipelagoMenuEntry::Server;
                 }
                 MenuSelectionResult::Selected(LoadConfirmMenuEntry::Delete, _) => {
                     self.current_menu = CurrentMenu::DeleteConfirm;
@@ -340,6 +399,52 @@ impl SaveSelectMenu {
                 }
                 _ => (),
             },
+            CurrentMenu::ArchipelagoMenu => match self.archipelago_menu.tick(controller, state) {
+                MenuSelectionResult::Selected(ArchipelagoMenuEntry::Back, _) | MenuSelectionResult::Canceled => {
+                    self.input_state = InputState::Idling;
+                    self.current_menu = CurrentMenu::SaveMenu;
+                }
+                MenuSelectionResult::Selected(ArchipelagoMenuEntry::Server, _) => {
+                    self.input_state = InputState::RequestInput;
+                    self.input_buffer = state.archipelago.server.clone();
+                    self.current_menu = CurrentMenu::InputMenu;
+                },
+                MenuSelectionResult::Selected(ArchipelagoMenuEntry::SlotName, _) => {
+                    self.input_state = InputState::RequestInput;
+                    self.input_buffer = state.archipelago.slot_name.clone();
+                    self.current_menu = CurrentMenu::InputMenu;
+                },
+                MenuSelectionResult::Selected(ArchipelagoMenuEntry::Password, _) => {
+                    self.input_state = InputState::RequestInput;
+                    self.input_buffer = state.archipelago.password.clone();
+                    self.current_menu = CurrentMenu::InputMenu;
+                },
+                MenuSelectionResult::Selected(ArchipelagoMenuEntry::Start, _) => {
+                    self.confirm_save_slot(state, ctx)?;
+                },
+                _ => (),
+            }
+            CurrentMenu::InputMenu => match self.input_state {
+                InputState::Idling => {
+                    self.current_menu = CurrentMenu::ArchipelagoMenu;
+                },
+                InputState::RequestInput => (),
+                InputState::ReceivedInput => {
+                    match self.archipelago_menu.selected {
+                        ArchipelagoMenuEntry::Server => {
+                            state.archipelago.server = self.input_buffer.clone();
+                        },
+                        ArchipelagoMenuEntry::SlotName => {
+                            state.archipelago.slot_name = self.input_buffer.clone();
+                        },
+                        ArchipelagoMenuEntry::Password => {
+                            state.archipelago.password = self.input_buffer.clone();
+                        },
+                        _ => (),
+                    }
+                    self.current_menu = CurrentMenu::ArchipelagoMenu;
+                },
+            }
         }
 
         Ok(())
@@ -364,18 +469,61 @@ impl SaveSelectMenu {
                 self.save_detailed.draw(state, ctx)?;
                 self.load_confirm.draw(state, ctx)?;
             }
+            CurrentMenu::ArchipelagoMenu => {
+                self.archipelago_menu.draw(state, ctx)?;
+            }
+            CurrentMenu::InputMenu => {
+                self.archipelago_menu.draw(state, ctx)?;
+            }
         }
         Ok(())
     }
 
-    fn confirm_save_slot(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        if state.constants.supports_two_player {
-            self.current_menu = CurrentMenu::PlayerCountMenu;
-        } else {
-            state.reload_resources(ctx)?;
-            state.load_or_start_game(ctx)?;
-        }
+    pub fn retrive_input(
+        &mut self,
+        state: &mut SharedGameState,
+        ui: &mut imgui::Ui,
+    ){
+        let width = state.screen_size.0;
+        let height = 85.0;
+        let x = 0.0 as f32;
+        let y = state.screen_size.1 - height;
 
+        Window::new("Input")
+            .position([x, y], Condition::FirstUseEver)
+            .size([width, height], Condition::FirstUseEver)
+            .resizable(false)
+            .collapsible(false)
+            .movable(false)
+            .build(ui, || {
+                let iw = ui.push_item_width(state.screen_size.0);
+
+                ui.set_keyboard_focus_here();
+
+                ui.input_text("", &mut self.input_buffer).build();
+                iw.pop(ui);
+                ui.same_line();
+
+                if ui.is_key_pressed(imgui::Key::Enter) {
+                    log::info!("Received Input: {}", self.input_buffer);
+                    state.sound_manager.play_sfx(5);
+                    self.input_state = InputState::ReceivedInput;
+                }
+            });
+    }
+
+    fn confirm_save_slot(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
+        match state.archipelago.action(archipelago::ArchipelagoAction::Connect, None) {
+            Ok(_) => {
+                if state.constants.supports_two_player {
+                    self.current_menu = CurrentMenu::PlayerCountMenu;
+                } else {
+                    state.reload_resources(ctx)?;
+                    state.load_or_start_game(ctx)?;
+                }
+            },
+            Err(_) => {}
+        }
         Ok(())
     }
 }
