@@ -36,6 +36,8 @@ use crate::sound::SoundManager;
 use crate::util::bitvec::BitVec;
 use crate::util::rng::XorShift;
 
+use crate::archipelago::Archipelago;
+
 use super::filesystem_container::FilesystemContainer;
 
 #[derive(PartialEq, Eq, Copy, Clone, serde::Serialize, serde::Deserialize)]
@@ -347,6 +349,7 @@ pub struct SharedGameState {
     #[cfg(feature = "discord-rpc")]
     pub discord_rpc: DiscordRPC,
     pub shutdown: bool,
+    pub archipelago: Archipelago,
 }
 
 impl SharedGameState {
@@ -515,6 +518,7 @@ impl SharedGameState {
             #[cfg(feature = "discord-rpc")]
             discord_rpc: DiscordRPC::new(discord_rpc_app_id),
             shutdown: false,
+            archipelago: Archipelago::new(),
         })
     }
 

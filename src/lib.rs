@@ -28,3 +28,5 @@ mod mod_requirements;
 mod scene;
 mod sound;
 mod util;
+
+mod archipelago;

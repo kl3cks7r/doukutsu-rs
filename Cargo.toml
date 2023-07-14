@@ -94,6 +94,9 @@ webbrowser = { version = "0.8.6", optional = true }
 winit = { git = "https://github.com/doukutsu-rs/winit.git", rev = "878f206d19af01b0977277929eee5e32667453c0", optional = true, default_features = false, features = ["x11"] }
 xmltree = "0.10"
 
+archipelago_rs = { git = "https://github.com/ryanisaacg/archipelago_rs", version = "0.1.0" }
+tokio = { version = "1.28.2", features = ["full"] }
+
 #hack to not link SDL_image on Windows(causes a linker error)
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["image", "unsafe_textures", "bundled", "static-link"] }
