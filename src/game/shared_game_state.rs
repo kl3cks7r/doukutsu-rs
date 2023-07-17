@@ -823,14 +823,14 @@ impl SharedGameState {
             if save_slot < 0 {
                 return None;
             } else if save_slot > 0 {
-                return Some(format!("/Mod{}_Profile{}.dat", save_slot, slot));
+                return Some(format!("/Mod{}_AP_Profile{}.dat", save_slot, slot));
             }
         }
 
         if slot == 1 {
-            return Some("/Profile.dat".to_owned());
+            return Some("/AP_Profile.dat".to_owned());
         } else {
-            return Some(format!("/Profile{}.dat", slot));
+            return Some(format!("/AP_Profile{}.dat", slot));
         }
     }
 
