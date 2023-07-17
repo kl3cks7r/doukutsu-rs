@@ -9,7 +9,6 @@ use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
 
 use imgui::{Condition, Window};
-use crate::archipelago;
 
 #[derive(Clone, Copy)]
 pub struct MenuSaveInfo {
@@ -513,7 +512,7 @@ impl SaveSelectMenu {
     }
 
     fn confirm_save_slot(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        match state.archipelago.action(archipelago::ArchipelagoAction::Connect, None) {
+        match state.archipelago.connect() {
             Ok(_) => {
                 if state.constants.supports_two_player {
                     self.current_menu = CurrentMenu::PlayerCountMenu;
