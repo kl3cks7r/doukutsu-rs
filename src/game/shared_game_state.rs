@@ -764,6 +764,7 @@ impl SharedGameState {
 
     pub fn set_flag(&mut self, id: usize, value: bool) {
         if id < self.game_flags.len() {
+            self.archipelago.process_flag(id, value);
             self.game_flags.set(id, value);
         } else {
             log::warn!("Attempted to set an out-of-bounds flag: {} to {}.", id, value);

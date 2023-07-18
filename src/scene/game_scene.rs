@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 use log::info;
 
+use crate::archipelago::Archipelago;
 use crate::common::{interpolate_fix9_scale, Color, Direction, Rect};
 use crate::components::background::Background;
 use crate::components::boss_life_bar::BossLifeBar;
@@ -1533,6 +1534,8 @@ impl GameScene {
                     self.player1.cond.set_interacted(false);
                 } else if self.player1.controller.trigger_map() && self.player1.equip.has_map() {
                     state.textscript_vm.state = TextScriptExecutionState::MapSystem;
+                } else {
+                    Archipelago::tick(state);
                 }
             }
         }
