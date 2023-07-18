@@ -521,7 +521,14 @@ impl SaveSelectMenu {
                     state.load_or_start_game(ctx)?;
                 }
             },
-            Err(_) => {}
+            Err(_) => {
+                if state.constants.supports_two_player {
+                    self.current_menu = CurrentMenu::PlayerCountMenu;
+                } else {
+                    state.reload_resources(ctx)?;
+                    state.load_or_start_game(ctx)?;
+                }
+            }
         }
         Ok(())
     }

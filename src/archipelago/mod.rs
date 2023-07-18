@@ -1,10 +1,15 @@
+use archipelago_rs::client::{ArchipelagoClientSender, ArchipelagoClientReceiver};
 use archipelago_rs::client::{ArchipelagoClient, ArchipelagoError};
 
+use archipelago_rs::protocol::{ServerMessage, ClientMessage};
 use tokio::runtime::Builder;
-use std::sync::Mutex;
-use std::sync::Arc;
-use tokio::task::JoinHandle as TokioJoinHandle;
+use tokio::sync::mpsc;
 use tokio::runtime::Runtime;
+
+use crate::game::scripting::tsc::text_script::ScriptMode;
+use crate::game::scripting::tsc::text_script::TextScript;
+use crate::game::scripting::tsc::text_script::TextScriptEncoding;
+use crate::game::shared_game_state::SharedGameState;
 
 // pub enum ArchipelagoState {
 //     Disconnected,
@@ -14,8 +19,8 @@ use tokio::runtime::Runtime;
 pub struct Archipelago {
     // state: ArchipelagoState,
     runtime: Runtime,
-    client: Arc<Mutex<Option<ArchipelagoClient>>>,
-    handles: Vec<TokioJoinHandle<Result<(),ArchipelagoError>>>,
+    inbox: Option<mpsc::Receiver<ServerMessage>>,
+    outbox: Option<mpsc::Sender<ClientMessage>>,
     pub server: String,
     pub slot_name: String,
     pub password: String,
@@ -30,8 +35,8 @@ impl Archipelago {
             .enable_all()
             .build()
             .unwrap(),
-            client: Arc::new(Mutex::new(None)),
-            handles: Vec::with_capacity(10),
+            inbox: None,
+            outbox: None,
             server: String::new(),
             slot_name: String::new(),
             password: String::new(),
@@ -43,27 +48,59 @@ impl Archipelago {
         let mut url = String::new();
         url.push_str("ws://");
         url.push_str(&self.server);
+        let (in_send, in_recv) = mpsc::channel(16);
+        let (out_send, mut out_recv) = mpsc::channel(16);
+        self.inbox = Some(in_recv);
+        self.outbox = Some(out_send);
 
         log::info!("Attempting to connect");
         
-        let mut client_lock = self.client.lock().unwrap();
         match self.runtime.block_on(ArchipelagoClient::new(&url)) {
-            Ok(client) => {
-                *client_lock = Some(client);
-                log::info!("Archipelago successfully connected!");
-            }
-            Err(e) => {
-                log::info!("Failed to connect: {}", e.to_string());
-                return Err(e);
-            }
-        }
+            Ok(mut client) => {
+                match self.runtime.block_on(client
+                    .connect("VVVVVV", &self.slot_name, Some(&self.password), Some(7), vec!["AP".to_string()])
+                ){
+                    Ok(_packet) => {
+                        match client.split() {
+                            (mut s, mut r) => {
+                                let in_rt = Builder::new_current_thread()
+                                    .enable_all()
+                                    .build()
+                                    .unwrap();
 
-        match self.runtime.block_on(client_lock
-            .as_mut()
-            .unwrap()
-            .connect("VVVVVV", &self.slot_name, Some(&self.password), Some(7), vec!["AP".to_string()])
-        ){
-            Ok(_) => {
+                                std::thread::spawn(move || {
+                                    in_rt.block_on(async move {
+                                        while let Ok(try_packet) = r.recv().await {
+                                            match try_packet {
+                                                Some(packet) => {
+                                                    let _ = in_send.send(packet).await;
+                                                }
+                                                None => {}
+                                            }
+                                        }
+                                    });
+                                });
+                                let out_rt = Builder::new_current_thread()
+                                    .enable_all()
+                                    .build()
+                                    .unwrap();
+
+                                std::thread::spawn(move || {
+                                    out_rt.block_on(async move {
+                                        while let Some(packet) = out_recv.recv().await {
+                                            send_packet(&mut s, packet).await;
+                                        }
+                                    });
+                                });
+                            }
+                        }
+                        log::info!("Archipelago successfully connected!");
+                    }
+                    Err(e) => {
+                        log::info!("Failed to connect: {}", e.to_string());
+                        return Err(e);
+                    }
+                }
                 log::info!("Archipelago successfully connected!");
             }
             Err(e) => {
@@ -73,71 +110,61 @@ impl Archipelago {
         }
         Ok(())
     }
-    // pub fn action(
-    //     &mut self,
-    //     action: ArchipelagoAction,
-    //     args: Option<Vec<String>>,
-    // ) -> Result<(),ArchipelagoError> {
-    //     match action {
-    //         ArchipelagoAction::Connect => {
-    //             let mut url = String::new();
-    //             url.push_str("ws://");
-    //             url.push_str(&self.server);
+    pub fn location_checks(
+        &mut self,
+    ) -> Result<(),ArchipelagoError> {
+        // send vector of location ids
+        Ok(())
+    }
+    pub fn location_scouts(
+        &mut self,
+    ) -> Result<(),ArchipelagoError> {
+        // create as hint is false for generation
+        Ok(())
+    }
+    pub fn status_update(
+        &mut self,
+    ) -> Result<(),ArchipelagoError> {
+        // unknown, ready, playing, goal
+        Ok(())
+    }
+    pub fn get_data_package(
+        &mut self,
+    ) -> Result<(),ArchipelagoError> {
 
-    //             log::info!("Attempting to connect");
-                
-    //             let mut client_lock = self.client.lock().unwrap();
-    //             match self.runtime.block_on(ArchipelagoClient::new(&url)) {
-    //                 Ok(client) => {
-    //                     *client_lock = Some(client);
-    //                     log::info!("Archipelago successfully connected!");
-    //                 }
-    //                 Err(e) => {
-    //                     log::info!("Failed to connect: {}", e.to_string());
-    //                     return Err(e);
-    //                 }
-    //             }
+        Ok(())
+    }
+    pub fn bounce(
+        &mut self,
+    ) -> Result<(),ArchipelagoError> {
+        Ok(())
+    }
+    pub fn process_flag(
+        &mut self,
+        id: usize,
+        value: bool
+    ) {
+        log::warn!("Processing flag {} ({})", id, value);
+    }
+    pub fn tick(
+        state: &mut SharedGameState
+    ) {
+        // match TextScript::compile(format!("#9999\n<SOU0022<MSG<GIT1006Got Life Capsule.<WAI0160<ML+0003").as_bytes(), true, TextScriptEncoding::UTF8) {
+        //     Ok(text_script) => {
+        //         state.textscript_vm.set_debug_script(text_script);
+        //         state.textscript_vm.set_mode(ScriptMode::Debug);
+        //         state.textscript_vm.start_script(9999);
+        //     }
+        //     Err(err) => {
+        //         log::warn!("Error occured during live TSC complilation: {}", err);
+        //     }
+        // };
+    }
+}
 
-    //             match self.runtime.block_on(client_lock
-    //                 .as_mut()
-    //                 .unwrap()
-    //                 .connect("VVVVVV", &self.slot_name, Some(&self.password), Some(7), vec!["AP".to_string()])
-    //             ){
-    //                 Ok(_) => {
-    //                     log::info!("Archipelago successfully connected!");
-    //                 }
-    //                 Err(e) => {
-    //                     log::info!("Failed to connect: {}", e.to_string());
-    //                     return Err(e);
-    //                 }
-    //             }
-    //             Ok(())
-    //             // let _ = self.runtime.block_on(client_lock
-    //             //     .as_mut()
-    //             //     .unwrap()
-    //             //     .say("Hello, world!")
-    //             // );
-    //             // println!("Sent Hello, world!");
-    //         }
-    //         ArchipelagoAction::LocationChecks => {
-    //             // send vector of location ids
-    //             Ok(())
-    //         }
-    //         ArchipelagoAction::LocationScouts => {
-    //             // create as hint is false for generation
-    //             Ok(())
-    //         }
-    //         ArchipelagoAction::StatusUpdate => {
-    //             // unknown, ready, playing, goal
-    //             Ok(())
-    //         }
-    //         ArchipelagoAction::GetDataPackage => {
-    //             // 
-    //             Ok(())
-    //         }
-    //         // ArchipelagoAction::Bounce => {
-                
-    //         // }
-    //     }
-    // }
+async fn send_packet(
+    sender: &mut ArchipelagoClientSender,
+    packet: ClientMessage
+) {
+    println!("Got task {packet:?}");
 }
