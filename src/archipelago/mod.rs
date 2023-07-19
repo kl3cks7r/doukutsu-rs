@@ -1,4 +1,4 @@
-use archipelago_rs::client::{ArchipelagoClientSender, ArchipelagoClientReceiver};
+use archipelago_rs::client::ArchipelagoClientSender;
 use archipelago_rs::client::{ArchipelagoClient, ArchipelagoError};
 
 use archipelago_rs::protocol::{ServerMessage, ClientMessage};
@@ -70,14 +70,32 @@ impl Archipelago {
 
                                 std::thread::spawn(move || {
                                     in_rt.block_on(async move {
-                                        while let Ok(try_packet) = r.recv().await {
-                                            match try_packet {
-                                                Some(packet) => {
-                                                    let _ = in_send.send(packet).await;
+                                        while match r.recv().await {
+                                            Ok(try_packet) => {
+                                                match try_packet {
+                                                    Some(packet) => {
+                                                        log::info!("Got packet: {packet:?}");
+                                                        let _ = in_send.send(packet).await;
+                                                    }
+                                                    None => {}
                                                 }
-                                                None => {}
+                                                true
+                                            },
+                                            Err(e) => {
+                                                let mut response = false;
+                                                match e {
+                                                    ArchipelagoError::NonTextWebsocketResult(m) => {
+                                                        log::info!("NonText packet received: {m:?}");
+                                                        response = true;
+                                                    }
+                                                    _ => {
+                                                        log::warn!("Inbox Error: {e}");
+                                                    }
+                                                }
+                                                response
                                             }
-                                        }
+                                        } {};
+                                        log::warn!("Inbox has been lost!");
                                     });
                                 });
                                 let out_rt = Builder::new_current_thread()
@@ -87,27 +105,27 @@ impl Archipelago {
 
                                 std::thread::spawn(move || {
                                     out_rt.block_on(async move {
-                                        while let Some(packet) = out_recv.recv().await {
+                                        while let Some(packet) = out_recv.recv().await  {
                                             send_packet(&mut s, packet).await;
                                         }
+                                        log::warn!("Outbox has been lost!");
                                     });
                                 });
                             }
                         }
-                        log::info!("Archipelago successfully connected!");
                     }
                     Err(e) => {
-                        log::info!("Failed to connect: {}", e.to_string());
+                        log::warn!("Failed to connect: {}", e.to_string());
                         return Err(e);
                     }
                 }
-                log::info!("Archipelago successfully connected!");
             }
             Err(e) => {
-                log::info!("Failed to connect: {}", e.to_string());
+                log::warn!("Failed to connect: {}", e.to_string());
                 return Err(e);
             }
         }
+        log::info!("Archipelago successfully connected!");
         Ok(())
     }
     pub fn location_checks(
@@ -166,5 +184,5 @@ async fn send_packet(
     sender: &mut ArchipelagoClientSender,
     packet: ClientMessage
 ) {
-    println!("Got task {packet:?}");
+    println!("Sending packet {packet:?}");
 }
