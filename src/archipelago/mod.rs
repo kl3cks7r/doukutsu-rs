@@ -58,7 +58,7 @@ impl Archipelago {
         match self.runtime.block_on(ArchipelagoClient::new(&url)) {
             Ok(mut client) => {
                 match self.runtime.block_on(client
-                    .connect("VVVVVV", &self.slot_name, Some(&self.password), Some(7), vec!["AP".to_string()])
+                    .connect("Cave Story", &self.slot_name, Some(&self.password), Some(0), vec!["AP".to_string()])
                 ){
                     Ok(_packet) => {
                         match client.split() {
