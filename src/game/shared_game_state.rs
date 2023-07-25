@@ -36,7 +36,7 @@ use crate::sound::SoundManager;
 use crate::util::bitvec::BitVec;
 use crate::util::rng::XorShift;
 
-use crate::archipelago::Archipelago;
+use crate::archipelago::client::{Archipelago, handle_flag};
 
 use super::filesystem_container::FilesystemContainer;
 
@@ -763,7 +763,7 @@ impl SharedGameState {
 
     pub fn set_flag(&mut self, id: usize, value: bool) {
         if id < self.game_flags.len() {
-            self.archipelago.process_flag(id, value);
+            handle_flag(self, id, value);
             self.game_flags.set(id, value);
         } else {
             log::warn!("Attempted to set an out-of-bounds flag: {} to {}.", id, value);
