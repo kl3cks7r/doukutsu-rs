@@ -392,8 +392,8 @@ impl EngineConstants {
             is_switch: false,
             is_demo: false,
             supports_og_textures: false,
-            has_difficulty_menu: true,
-            supports_two_player: cfg!(not(target_os = "android")),
+            has_difficulty_menu: false,
+            supports_two_player: false,
             game: GameConsts {
                 intro_stage: 72,
                 intro_event: 100,
@@ -1829,7 +1829,7 @@ impl EngineConstants {
             if settings.original_textures {
                 mod_path.push_str("ogph/");
                 self.base_paths.insert(0, mod_path);
-            }
+        }
 
             // Nicalis left a landmine of a file in the original graphics for the nemesis challenge
             // It has 17 colors defined for a 4-bit color depth bitmap
