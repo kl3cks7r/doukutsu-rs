@@ -1677,7 +1677,7 @@ impl Scene for GameScene {
 
         let npcs = self.stage.load_npcs(&state.constants.base_paths, ctx, state.save_slot)?;
         for npc_data in npcs.iter() {
-            log::info!("creating npc: {:?}", npc_data);
+            log::info!("creating npc: {}", npc_data);
 
             let mut npc = NPC::create_from_data(npc_data, &state.npc_table, state.tile_size);
             if npc.npc_flags.appear_when_flag_set() {

@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io;
+use std::{io, fmt};
 use std::io::{BufRead, BufReader, Cursor, Read};
 use std::sync::Arc;
 
@@ -484,6 +484,13 @@ pub struct NPCData {
     pub npc_type: u16,
     pub flags: u16,
     pub layer: u8,
+}
+
+impl fmt::Display for NPCData {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{{ id: {}, pos: ({},{}), flag_num: {}, event_num: {}, type: {}, flags: {:#06x}, layer: {} }}",
+            self.id, self.x, self.y, self.flag_num, self.event_num, self.npc_type, self.flags, self.layer)
+    }
 }
 
 impl NPCData {
