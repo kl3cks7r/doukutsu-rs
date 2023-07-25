@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use log::info;
 
-use crate::archipelago::Archipelago;
+use crate::archipelago::client::Archipelago;
 use crate::common::{interpolate_fix9_scale, Color, Direction, Rect};
 use crate::components::background::Background;
 use crate::components::boss_life_bar::BossLifeBar;
