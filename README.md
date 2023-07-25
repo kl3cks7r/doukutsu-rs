@@ -7,7 +7,7 @@ I'm also using the Archipelgo Rust library made by ryanisaacg, found here: https
 
 ### Planned supported game editions
 
-I plan to primarily support the freeware version of the game, though ample testing has been done on the Cave Story+ data
+Only the freeware version of the game is fully supported. I might implement support for CS+ in the future, but I'm reluctant to modifying Nicalis CS+ files. 
 
 **Important notes:**
 
@@ -18,4 +18,5 @@ I plan to primarily support the freeware version of the game, though ample testi
 
 - Studio Pixel/Nicalis for Cave Story
 - All of the lovely contributors of doukutsu-rs
-- duncathan_salt and the contributors of his randomizer. I appreciate the research documents
+- duncathan and the contributors of his randomizer
+- Everyone else in the CSMC!
