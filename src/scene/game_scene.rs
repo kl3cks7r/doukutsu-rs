@@ -1665,6 +1665,7 @@ impl Scene for GameScene {
             &state.constants.base_paths,
             &state.constants,
             ctx,
+            state.save_slot,
         )?);
         state.textscript_vm.suspend = false;
         state.tile_size = self.stage.map.tile_size;
@@ -1674,7 +1675,7 @@ impl Scene for GameScene {
         self.player1.controller = state.settings.create_player1_controller();
         self.player2.controller = state.settings.create_player2_controller();
 
-        let npcs = self.stage.load_npcs(&state.constants.base_paths, ctx)?;
+        let npcs = self.stage.load_npcs(&state.constants.base_paths, ctx, state.save_slot)?;
         for npc_data in npcs.iter() {
             log::info!("creating npc: {:?}", npc_data);
 
