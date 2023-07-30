@@ -55,7 +55,8 @@
       "title": "Input Archipelago Info",
       "ip": "IP Address",
       "slot": "Slot Name",
-      "password": "Password"
+      "password": "Password",
+      "connect": "Connect"
     },
     "challenge_menu": {
       "start": "Start",

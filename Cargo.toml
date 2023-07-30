@@ -97,6 +97,9 @@ xmltree = "0.10"
 archipelago_rs = { git = "https://github.com/ryanisaacg/archipelago_rs", version = "0.1.0" }
 tokio = { version = "1.28.2", features = ["full"] }
 
+[patch.'https://github.com/ryanisaacg/archipelago_rs']
+archipelago_rs = { git = "https://github.com/kl3cks7r/archipelago_rs", branch = "dev" }
+
 #hack to not link SDL_image on Windows(causes a linker error)
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 sdl2 = { git = "https://github.com/doukutsu-rs/rust-sdl2.git", rev = "95bcf63768abf422527f86da41da910649b9fcc9", optional = true, features = ["image", "unsafe_textures", "bundled", "static-link"] }

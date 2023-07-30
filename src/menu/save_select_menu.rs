@@ -1,3 +1,4 @@
+use crate::archipelago::client::{ArchipelagoState, Archipelago};
 use crate::framework::context::Context;
 use crate::framework::error::GameResult;
 use crate::framework::filesystem;
@@ -7,6 +8,7 @@ use crate::input::combined_menu_controller::CombinedMenuController;
 use crate::menu::coop_menu::PlayerCountMenu;
 use crate::menu::MenuEntry;
 use crate::menu::{Menu, MenuSelectionResult};
+use crate::archipelago::generator::generate_world;
 
 use imgui::{Condition, Window};
 
@@ -97,7 +99,7 @@ pub enum ArchipelagoMenuEntry {
     Server,
     SlotName,
     Password,
-    Start,
+    Connect,
     Back,
 }
 
@@ -251,7 +253,7 @@ impl SaveSelectMenu {
         self.archipelago_menu.push_entry(ArchipelagoMenuEntry::Server, MenuEntry::Active(state.loc.t("menus.archipelago_menu.ip").to_owned()));
         self.archipelago_menu.push_entry(ArchipelagoMenuEntry::SlotName, MenuEntry::Active(state.loc.t("menus.archipelago_menu.slot").to_owned()));
         self.archipelago_menu.push_entry(ArchipelagoMenuEntry::Password, MenuEntry::Active(state.loc.t("menus.archipelago_menu.password").to_owned()));
-        self.archipelago_menu.push_entry(ArchipelagoMenuEntry::Start, MenuEntry::Active(state.loc.t("menus.main_menu.start").to_owned()));
+        self.archipelago_menu.push_entry(ArchipelagoMenuEntry::Connect, MenuEntry::Active(state.loc.t("menus.archipelago_menu.connect").to_owned()));
         self.archipelago_menu.push_entry(ArchipelagoMenuEntry::Back, MenuEntry::Active(state.loc.t("common.back").to_owned()));
 
         self.archipelago_menu.selected = ArchipelagoMenuEntry::Server;
@@ -418,10 +420,21 @@ impl SaveSelectMenu {
                     self.input_buffer = state.archipelago.password.clone();
                     self.current_menu = CurrentMenu::InputMenu;
                 },
-                MenuSelectionResult::Selected(ArchipelagoMenuEntry::Start, _) => {
-                    self.confirm_save_slot(state, ctx)?;
+                MenuSelectionResult::Selected(ArchipelagoMenuEntry::Connect, _) => {
+                    let _ = state.archipelago.connect();
                 },
-                _ => (),
+                _ => {
+                    match state.archipelago.state {
+                        ArchipelagoState::Connected => {
+                            Archipelago::tick(state);
+                            if state.archipelago.is_ready() {
+                                let _ = generate_world(state, ctx);
+                                self.confirm_save_slot(state, ctx)?;
+                            }
+                        }
+                        ArchipelagoState::Disconnected => (),
+                    }
+                },
             }
             CurrentMenu::InputMenu => match self.input_state {
                 InputState::Idling => {
@@ -512,24 +525,8 @@ impl SaveSelectMenu {
     }
 
     fn confirm_save_slot(&mut self, state: &mut SharedGameState, ctx: &mut Context) -> GameResult {
-        match state.archipelago.connect() {
-            Ok(_) => {
-                if state.constants.supports_two_player {
-                    self.current_menu = CurrentMenu::PlayerCountMenu;
-                } else {
-                    state.reload_resources(ctx)?;
-                    state.load_or_start_game(ctx)?;
-                }
-            },
-            Err(_) => {
-                if state.constants.supports_two_player {
-                    self.current_menu = CurrentMenu::PlayerCountMenu;
-                } else {
-                    state.reload_resources(ctx)?;
-                    state.load_or_start_game(ctx)?;
-                }
-            }
-        }
+        state.reload_resources(ctx)?;
+        state.load_or_start_game(ctx)?;
         Ok(())
     }
 }

@@ -21,7 +21,9 @@ use crate::game::profile::GameProfile;
 #[cfg(feature = "scripting-lua")]
 use crate::game::scripting::lua::LuaScriptingState;
 use crate::game::scripting::tsc::credit_script::{CreditScript, CreditScriptVM};
-use crate::game::scripting::tsc::text_script::{ScriptMode, TextScript, TextScriptEncoding, TextScriptExecutionState, TextScriptVM};
+use crate::game::scripting::tsc::text_script::{
+    ScriptMode, TextScript, TextScriptEncoding, TextScriptExecutionState, TextScriptVM,
+};
 use crate::game::settings::Settings;
 use crate::game::stage::StageData;
 use crate::graphics::bmfont::BMFont;
@@ -37,7 +39,7 @@ use crate::sound::SoundManager;
 use crate::util::bitvec::BitVec;
 use crate::util::rng::XorShift;
 
-use crate::archipelago::client::{Archipelago, handle_flag};
+use crate::archipelago::client::{handle_flag, Archipelago};
 
 use super::filesystem_container::FilesystemContainer;
 
@@ -422,11 +424,11 @@ impl SharedGameState {
 
         let locale = SharedGameState::get_locale(&constants, &settings.locale).unwrap_or_default();
         if (locale.code == "jp" || locale.code == "en") && constants.is_base() {
-            constants.textscript.encoding =  TextScriptEncoding::ShiftJIS
+            constants.textscript.encoding = TextScriptEncoding::ShiftJIS
         } else {
-            constants.textscript.encoding =  TextScriptEncoding::UTF8
+            constants.textscript.encoding = TextScriptEncoding::UTF8
         }
-        
+
         let font = BMFont::load(&constants.base_paths, &locale.font.path, ctx, locale.font.scale).or_else(|e| {
             log::warn!("Failed to load font, using built-in: {}", e);
             BMFont::load(&vec!["/".to_owned()], "builtin/builtin_font.fnt", ctx, 1.0)
@@ -576,9 +578,9 @@ impl SharedGameState {
         if let Some(locale) = SharedGameState::get_locale(&self.constants, &self.settings.locale) {
             self.loc = locale;
             if (self.loc.code == "jp" || self.loc.code == "en") && self.constants.is_base() {
-                self.constants.textscript.encoding =  TextScriptEncoding::ShiftJIS
+                self.constants.textscript.encoding = TextScriptEncoding::ShiftJIS
             } else {
-                self.constants.textscript.encoding =  TextScriptEncoding::UTF8
+                self.constants.textscript.encoding = TextScriptEncoding::UTF8
             }
         }
 
@@ -694,7 +696,6 @@ impl SharedGameState {
         } else {
             log::info!("Mod has saves disabled.");
         }
-
         self.start_new_game(ctx)
     }
 
