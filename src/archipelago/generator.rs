@@ -113,12 +113,12 @@ fn save_modded_pxx(tsc: &mut Vec<u8>, npcs: &Vec<NPCData>, stage: &String, ctx: 
     let mut pxe_path: PathBuf = stage_path.clone();
     pxe_path.push(format!("{}.pxe", stage));
 
-    if filesystem::user_create_dir(ctx, stage_path).is_err() {
+    if filesystem::create_dir(ctx, stage_path).is_err() {
         log::warn!("Failed to create StageAP directory structure.");
         return;
     }
 
-    let mut tsc_file = match filesystem::user_create(ctx, tsc_path) {
+    let mut tsc_file = match filesystem::create(ctx, tsc_path) {
         Ok(file) => file,
         Err(_) => {
             log::warn!("Failed to create tsc file.");
@@ -126,7 +126,7 @@ fn save_modded_pxx(tsc: &mut Vec<u8>, npcs: &Vec<NPCData>, stage: &String, ctx: 
         }
     };
 
-    let pxe_file = match filesystem::user_create(ctx, pxe_path) {
+    let pxe_file = match filesystem::create(ctx, pxe_path) {
         Ok(file) => file,
         Err(_) => {
             log::warn!("Failed to create pxe file.");

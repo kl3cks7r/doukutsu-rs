@@ -105,11 +105,24 @@ impl Filesystem {
         self.user_vfs.create(path.as_ref()).map(|f| File::VfsFile(f))
     }
 
+    /// Creates a new file in the user directory and opens it
+    /// to be written to, truncating it if it already exists.
+    pub(crate) fn create<P: AsRef<path::Path>>(&self, path: P) -> GameResult<File> {
+        self.vfs.create(path.as_ref()).map(|f| File::VfsFile(f))
+    }
+
     /// Create an empty directory in the user dir
     /// with the given name.  Any parents to that directory
     /// that do not exist will be created.
     pub(crate) fn user_create_dir<P: AsRef<path::Path>>(&self, path: P) -> GameResult<()> {
         self.user_vfs.mkdir(path.as_ref())
+    }
+
+    /// Create an empty directory in the resource dir
+    /// with the given name.  Any parents to that directory
+    /// that do not exist will be created.
+    pub(crate) fn create_dir<P: AsRef<path::Path>>(&self, path: P) -> GameResult<()> {
+        self.vfs.mkdir(path.as_ref())
     }
 
     /// Deletes the specified file in the user dir.
@@ -121,6 +134,12 @@ impl Filesystem {
     /// and all its contents!
     pub(crate) fn user_delete_dir<P: AsRef<path::Path>>(&self, path: P) -> GameResult<()> {
         self.user_vfs.rmrf(path.as_ref())
+    }
+
+    /// Deletes the specified directory in the resource dir,
+    /// and all its contents!
+    pub(crate) fn delete_dir<P: AsRef<path::Path>>(&self, path: P) -> GameResult<()> {
+        self.vfs.rmrf(path.as_ref())
     }
 
     /// Check whether a file or directory in the user directory exists.
@@ -331,6 +350,25 @@ pub fn exists_find<P: AsRef<path::Path>>(ctx: &Context, roots: &Vec<String>, pat
     }
 
     false
+}
+
+/// Creates a new file in the resource directory and opens it
+/// to be written to, truncating it if it already exists.
+pub fn create<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult<File> {
+    ctx.filesystem.create(path)
+}
+
+/// Create an empty directory in the resource dir
+/// with the given name.  Any parents to that directory
+/// that do not exist will be created.
+pub fn create_dir<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult {
+    ctx.filesystem.create_dir(path.as_ref())
+}
+
+/// Deletes the specified directory in the resource dir,
+/// and all its contents!
+pub fn delete_dir<P: AsRef<path::Path>>(ctx: &Context, path: P) -> GameResult {
+    ctx.filesystem.delete_dir(path.as_ref())
 }
 
 /// Check whether a path points at a file.

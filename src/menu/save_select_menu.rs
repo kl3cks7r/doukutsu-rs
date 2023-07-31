@@ -427,14 +427,15 @@ impl SaveSelectMenu {
                 },
                 _ => {
                     match state.archipelago.state {
-                        ArchipelagoState::Connected => {
+                        ArchipelagoState::Connected | ArchipelagoState::Active => {
                             Archipelago::tick(state);
                             if state.archipelago.is_ready() {
                                 let _ = generate_world(state, ctx);
+                                state.archipelago.startup();
                                 self.confirm_save_slot(state, ctx)?;
                             }
                         }
-                        ArchipelagoState::Disconnected => (),
+                        _ => (),
                     }
                 },
             }

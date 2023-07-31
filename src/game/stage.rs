@@ -572,14 +572,24 @@ impl Stage {
         ctx: &mut Context,
         save_slot: usize,
     ) -> GameResult<TextScript> {
-        let tsc_file = filesystem::open_find(ctx, roots, ["StageAP", &save_slot.to_string().to_owned(), "/", &self.data.map, ".tsc"].join(""))?;
+        let tsc_file: filesystem::File;
+        if save_slot == 0 {
+            tsc_file = filesystem::open_find(ctx, roots, ["Stage/", &self.data.map, ".tsc"].join(""))?;
+        } else {
+            tsc_file = filesystem::open_find(ctx, roots, ["StageAP", &save_slot.to_string().to_owned(), "/", &self.data.map, ".tsc"].join(""))?;
+        }
         let text_script = TextScript::load_from(tsc_file, constants)?;
 
         Ok(text_script)
     }
 
     pub fn load_npcs(&self, roots: &Vec<String>, ctx: &mut Context, save_slot: usize) -> GameResult<Vec<NPCData>> {
-        let pxe_file = filesystem::open_find(ctx, roots, ["StageAP", &save_slot.to_string().to_owned(), "/", &self.data.map, ".pxe"].join(""))?;
+        let pxe_file: filesystem::File;
+        if save_slot == 0 {
+            pxe_file = filesystem::open_find(ctx, roots, ["Stage/", &self.data.map, ".pxe"].join(""))?;
+        } else {
+            pxe_file = filesystem::open_find(ctx, roots, ["StageAP", &save_slot.to_string().to_owned(), "/", &self.data.map, ".pxe"].join(""))?;
+        }
         let npc_data = NPCData::load_from(pxe_file)?;
 
         Ok(npc_data)
