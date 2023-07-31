@@ -266,6 +266,7 @@ impl PauseMenu {
                 MenuSelectionResult::Selected(ConfirmMenuEntry::Yes, _) => match self.pause_menu.selected {
                     PauseMenuEntry::Title => {
                         state.stop_noise();
+                        state.archipelago.shutdown();
                         state.textscript_vm.flags.set_cutscene_skip(false);
                         state.next_scene = Some(Box::new(TitleScene::new()));
                     }

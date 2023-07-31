@@ -473,7 +473,7 @@ impl VFS for OverlayFS {
     fn mkdir(&self, path: &Path) -> GameResult {
         for vfs in &self.roots {
             match vfs.mkdir(path) {
-                Err(_) => (),
+                Err(e) => {log::warn!("ERROR: {:?}",e)},
                 f => return f,
             }
         }

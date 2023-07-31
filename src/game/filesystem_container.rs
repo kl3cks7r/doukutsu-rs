@@ -70,7 +70,7 @@ impl FilesystemContainer {
 
         #[cfg(not(any(target_os = "android", target_os = "horizon")))]
         {
-            mount_vfs(context, Box::new(PhysicalFS::new(&resource_dir, true)));
+            mount_vfs(context, Box::new(PhysicalFS::new(&resource_dir, false)));
             self.game_path = resource_dir.clone();
         }
 

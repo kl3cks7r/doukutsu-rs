@@ -507,7 +507,7 @@ impl SharedGameState {
             lua: LuaScriptingState::new(),
             sound_manager,
             settings,
-            save_slot: 1,
+            save_slot: 0,
             difficulty: GameDifficulty::Normal,
             player_count: PlayerCount::One,
             player_count_modified_in_game: false,

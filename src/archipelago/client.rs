@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use archipelago_rs::client::{ArchipelagoClient, ArchipelagoError};
 
 use archipelago_rs::protocol::{
-    ClientMessage, Connected, GameData, GetDataPackage, LocationChecks, LocationScouts, NetworkItem, ServerMessage,
+    ClientMessage, Connected, GameData, GetDataPackage, LocationChecks, LocationScouts, NetworkItem, ServerMessage, ConnectUpdate,
 };
 use itertools::Itertools;
 use num_traits::ToPrimitive;
@@ -20,8 +20,10 @@ use crate::game::shared_game_state::SharedGameState;
 use super::stage_data::ALL_LOCATIONS;
 
 pub enum ArchipelagoState {
+    Inactive,
     Disconnected,
     Connected,
+    Active,
 }
 
 pub struct Archipelago {
@@ -40,7 +42,7 @@ pub struct Archipelago {
 impl Archipelago {
     pub fn new() -> Archipelago {
         Self {
-            state: ArchipelagoState::Disconnected,
+            state: ArchipelagoState::Inactive,
             runtime: Builder::new_multi_thread().worker_threads(1).enable_all().build().unwrap(),
             inbox: None,
             outbox: None,
@@ -70,7 +72,7 @@ impl Archipelago {
                     "Cave Story",
                     &self.slot_name,
                     Some(&self.password),
-                    Some(0x101),
+                    Some(0x000),
                     vec!["AP".to_string()],
                 )) {
                     Ok(connect) => {
@@ -152,6 +154,16 @@ impl Archipelago {
             Some(outbox) => _ = self.runtime.block_on(outbox.send(packet)),
             None => log::warn!("Client wants to send but outbox is closed!"),
         }
+    }
+    pub fn startup(&mut self) {
+        self.send(ClientMessage::ConnectUpdate(ConnectUpdate {items_handling:0x101, tags:vec![]}));
+        self.state = ArchipelagoState::Active;
+    }
+    pub fn shutdown(&mut self) {
+        self.send(ClientMessage::ConnectUpdate(ConnectUpdate {items_handling:0x000, tags:vec![]}));
+        self.inbox = None;
+        self.outbox = None;
+        self.state = ArchipelagoState::Inactive;
     }
     pub fn tick(state: &mut SharedGameState) {
         match state.archipelago.inbox.as_mut() {
