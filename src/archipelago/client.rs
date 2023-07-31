@@ -75,6 +75,7 @@ impl Archipelago {
                 )) {
                     Ok(connect) => {
                         self.connection_info = Some(connect);
+                        log::info!("Slot Info: {:?}",self.connection_info.as_ref().unwrap().slot_info);
                         match client.split() {
                             (mut s, mut r) => {
                                 let in_rt = Builder::new_current_thread().enable_all().build().unwrap();
@@ -129,13 +130,13 @@ impl Archipelago {
                         }));
                     }
                     Err(e) => {
-                        log::warn!("Failed to connect: {}", e.to_string());
+                        log::warn!("Failed to connect to slot: {}", e.to_string());
                         return Err(e);
                     }
                 }
             }
             Err(e) => {
-                log::warn!("Failed to connect: {}", e.to_string());
+                log::warn!("Failed to connect to server: {}", e.to_string());
                 return Err(e);
             }
         }
@@ -144,7 +145,6 @@ impl Archipelago {
         Ok(())
     }
     pub fn is_ready(&self) -> bool {
-        log::info!("DP:{:?} LI:{:?}", self.data_package, self.loc_info);
         return self.data_package.is_some() && self.loc_info.is_some();
     }
     pub fn send(&mut self, packet: ClientMessage) {
@@ -194,7 +194,7 @@ fn handle_packet(state: &mut SharedGameState, message: ServerMessage) {
                     .unwrap()
                     .get("Cave Story")
                     .unwrap()
-                    .location_name_to_id
+                    .item_name_to_id
                     .iter()
                     .find_map(|(key, &val)| if val == item.item { Some(key) } else { None })
                     .unwrap();
