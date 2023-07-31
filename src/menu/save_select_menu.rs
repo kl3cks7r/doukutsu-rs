@@ -315,6 +315,7 @@ impl SaveSelectMenu {
                     state.save_slot = slot + 1;
 
                     if self.skip_difficulty_menu {
+                        state.archipelago.state = ArchipelagoState::Disconnected;
                         self.current_menu = CurrentMenu::ArchipelagoMenu;
                         self.archipelago_menu.selected = ArchipelagoMenuEntry::Server;
                     } else {
@@ -345,6 +346,7 @@ impl SaveSelectMenu {
                 }
                 MenuSelectionResult::Selected(DifficultyMenuEntry::Difficulty(difficulty), _) => {
                     state.difficulty = difficulty;
+                    state.archipelago.state = ArchipelagoState::Disconnected;
                     self.current_menu = CurrentMenu::ArchipelagoMenu;
                     self.archipelago_menu.selected = ArchipelagoMenuEntry::Server;
                 }

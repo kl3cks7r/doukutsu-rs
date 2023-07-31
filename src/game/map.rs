@@ -3,7 +3,7 @@ use std::{io, fmt};
 use std::io::{BufRead, BufReader, Cursor, Read};
 use std::sync::Arc;
 
-use byteorder::{LE, ReadBytesExt};
+use byteorder::{LE, ReadBytesExt, BE, WriteBytesExt};
 
 use crate::common::{Color, Rect};
 use crate::framework::context::Context;
@@ -526,6 +526,23 @@ impl NPCData {
         }
 
         Ok(npcs)
+    }
+    pub fn save_to<W: io::Write>(mut data: W, npcs: &Vec<NPCData>) -> GameResult<()> {
+
+        data.write_u32::<BE>(0x50584500)?; // b'PXE\0' Assumming non-boosters labs
+
+        data.write_u32::<LE>(npcs.len() as u32)?;
+
+        for npc in npcs {
+            data.write_i16::<LE>(npc.x)?;
+            data.write_i16::<LE>(npc.y)?;
+            data.write_u16::<LE>(npc.flag_num)?;
+            data.write_u16::<LE>(npc.event_num)?;
+            data.write_u16::<LE>(npc.npc_type)?;
+            data.write_u16::<LE>(npc.flags)?;
+        }
+
+        Ok(())
     }
 }
 
