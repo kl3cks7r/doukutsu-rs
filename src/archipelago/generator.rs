@@ -6,11 +6,11 @@ use archipelago_rs::protocol::NetworkItem;
 use itertools::Itertools;
 use num_traits::ToPrimitive;
 
-use crate::archipelago::stage_data::{generate_tsc, Container};
+use crate::archipelago::stage_data::{self, Container};
 use crate::framework::context::Context;
 use crate::framework::filesystem;
 use crate::game::map::NPCData;
-use crate::game::scripting::tsc::encryption::{decrypt_tsc, encrypt_tsc};
+use crate::game::scripting::tsc::encryption;
 use crate::game::shared_game_state::SharedGameState;
 
 pub fn generate_world(state: &mut SharedGameState, ctx: &mut Context) {
@@ -29,7 +29,6 @@ pub fn generate_world(state: &mut SharedGameState, ctx: &mut Context) {
         for (_, group) in &buf.into_iter().group_by(|e| *e == b'#') {
             tsc_events.push(group.collect::<Vec<u8>>());
         }
-        //let tsc_events = buf.split(|slice| *slice == b'#').collect::<Vec<&[u8]>>();
         let mut modded_npcs = Vec::<NPCData>::new();
         for mut npc in load_vanilla_npcs(stage.map.to_string(), &state.constants.base_paths, ctx) {
             if npc.npc_type == 21 {
@@ -37,6 +36,15 @@ pub fn generate_world(state: &mut SharedGameState, ctx: &mut Context) {
             }
             match flag_to_item.get(&npc.flag_num) {
                 Some(item) => {
+                    let mut container: Container = Container::Chest;
+                    if npc.npc_type == 0 || npc.npc_type == 16 {
+                        // Sand Zone Small Room check is a null NPC
+                        if npc.flag_num != 581 {
+                            modded_npcs.push(npc);
+                            continue;
+                        }
+                        container = Container::Sparkle;
+                    }
                     let player = cn_info
                         .players
                         .iter()
@@ -50,13 +58,23 @@ pub fn generate_world(state: &mut SharedGameState, ctx: &mut Context) {
                         .iter()
                         .find_map(|(key, &val)| if val == item.item { Some(key.clone()) } else { None })
                         .unwrap_or("Unknown Item".to_string());
-                    npc.npc_type = 15; //For testing, everything is a chest
+                    if item.item >= 0xD00000+203 && item.item <= 0xD00000+205 && player_name == None {
+                        npc.npc_type = 32;
+                        npc.flags = 0x6000;
+                        container = Container::LifeCapsule;
+                    }
+                    else {
+                        npc.npc_type = 15;
+                        npc.flags = 0x6000;
+                        modded_npcs.push(NPCData{x:npc.x,y:npc.y,id:0,flag_num:npc.flag_num,event_num:npc.event_num,npc_type:21,flags:0x2800,layer:0});
+                    }
+                    // TODO: implement sparkles
                     let injected_tsc_event = &mut Vec::<u8>::new();
-                    generate_tsc(
+                    stage_data::generate_tsc(
                         injected_tsc_event,
                         npc.flag_num,
                         npc.event_num,
-                        Container::Chest,
+                        container,
                         item.item,
                         item_name,
                         player_name,
@@ -103,7 +121,7 @@ fn load_vanilla_npcs(stage: String, roots: &Vec<String>, ctx: &mut Context) -> V
 fn load_vanilla_text_script(buf: &mut Vec<u8>, stage: String, roots: &Vec<String>, ctx: &mut Context) {
     let mut tsc_file = filesystem::open_find(ctx, roots, ["Stage/", &stage, ".tsc"].join("")).unwrap();
     let _ = tsc_file.read_to_end(buf);
-    decrypt_tsc(buf);
+    encryption::decrypt_tsc(buf);
 }
 
 fn save_modded_pxx(tsc: &mut Vec<u8>, npcs: &Vec<NPCData>, stage: &String, ctx: &mut Context, save: usize) {
@@ -134,7 +152,7 @@ fn save_modded_pxx(tsc: &mut Vec<u8>, npcs: &Vec<NPCData>, stage: &String, ctx: 
         }
     };
 
-    encrypt_tsc(tsc);
+    encryption::encrypt_tsc(tsc);
     if tsc_file.write_all(tsc).is_err() {
         log::warn!("Failed to write to tsc file.");
         return;
