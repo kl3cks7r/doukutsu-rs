@@ -6,7 +6,7 @@ use archipelago_rs::protocol::NetworkItem;
 use itertools::Itertools;
 use num_traits::ToPrimitive;
 
-use crate::archipelago::stage_data::{self, Container};
+use crate::archipelago::stage_data;
 use crate::framework::context::Context;
 use crate::framework::filesystem;
 use crate::game::map::NPCData;
@@ -31,19 +31,21 @@ pub fn generate_world(state: &mut SharedGameState, ctx: &mut Context) {
         }
         let mut modded_npcs = Vec::<NPCData>::new();
         for mut npc in load_vanilla_npcs(stage.map.to_string(), &state.constants.base_paths, ctx) {
-            if npc.npc_type == 21 {
-                continue;
-            }
+            // Routine:
+            // Check if we are placing a health canister, if so, then we should skip saving the empty chest
             match flag_to_item.get(&npc.flag_num) {
                 Some(item) => {
-                    let mut container: Container = Container::Chest;
+                    if npc.npc_type == 21 {
+                        continue;
+                    }
+                    //let mut container: Container = Container::Chest;
                     if npc.npc_type == 0 || npc.npc_type == 16 {
                         // Sand Zone Small Room check is a null NPC
                         if npc.flag_num != 581 {
                             modded_npcs.push(npc);
                             continue;
                         }
-                        container = Container::Sparkle;
+                        //container = Container::Sparkle;
                     }
                     let player = cn_info
                         .players
@@ -57,11 +59,11 @@ pub fn generate_world(state: &mut SharedGameState, ctx: &mut Context) {
                         .item_name_to_id
                         .iter()
                         .find_map(|(key, &val)| if val == item.item { Some(key.clone()) } else { None })
-                        .unwrap_or("Unknown Item".to_string());
+                        .unwrap(); //_or("Unknown Item".to_string());
                     if item.item >= 0xD00000+203 && item.item <= 0xD00000+205 && player_name == None {
                         npc.npc_type = 32;
                         npc.flags = 0x6000;
-                        container = Container::LifeCapsule;
+                        //container = Container::LifeCapsule;
                     }
                     else {
                         npc.npc_type = 15;
@@ -74,12 +76,10 @@ pub fn generate_world(state: &mut SharedGameState, ctx: &mut Context) {
                         injected_tsc_event,
                         npc.flag_num,
                         npc.event_num,
-                        container,
                         item.item,
                         item_name,
                         player_name,
                     );
-                    //log::info!("Injected Event: {}", from_utf8(injected_tsc_event.as_slice()).unwrap());
                     let mut target_idx: Option<usize> = None;
                     for i in 0..tsc_events.len() {
                         match tsc_events[i].get_mut(0..4) {
